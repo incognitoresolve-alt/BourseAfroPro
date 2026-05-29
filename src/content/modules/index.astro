@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const niveaux = [
+  {
+    slug: 'initiation',
+    label: 'Niveau 1',
+    titre: 'Initiation',
+    desc: "L'écosystème boursier africain de A à Z",
+    modules: [
+      { slug: '01-ecosysteme', titre: "L'Écosystème Boursier Africain", duree: 10, xp: 100 },
+      { slug: '02-actions-obligations', titre: 'Actions vs Obligations', duree: 8, xp: 150 },
+      { slug: '03-brvm', titre: "La BRVM : mode d'emploi", duree: 12, xp: 200 },
+      { slug: '04-ordres', titre: 'Passer ses premiers ordres', duree: 10, xp: 150 },
+      { slug: '05-lexique', titre: 'Lexique essentiel', duree: 6, xp: 100 },
+    ],
+  },
+  {
+    slug: 'fondamentaux',
+    label: 'Niveau 2',
+    titre: 'Fondamentaux',
+    desc: 'Lire et analyser les données financières',
+    modules: [
+      { slug: '01-bilan', titre: 'Lire un bilan comptable', duree: 15, xp: 200 },
+      { slug: '02-ratios', titre: 'Ratios financiers clés', duree: 12, xp: 200 },
+      { slug: '03-dividendes', titre: 'Les dividendes africains', duree: 8, xp: 150 },
+      { slug: '04-analyse-tech', titre: 'Analyse technique de base', duree: 15, xp: 250 },
+      { slug: '05-rapports', titre: 'Décrypter les rapports annuels', duree: 12, xp: 200 },
+      { slug: '06-valorisation', titre: 'Méthodes de valorisation', duree: 14, xp: 250 },
+    ],
+  },
+  {
+    slug: 'strategie',
+    label: 'Niveau 3',
+    titre: 'Stratégie',
+    desc: 'Construction et gestion de portefeuille',
+    modules: [
+      { slug: '01-allocation', titre: 'Allocation d\'actifs', duree: 12, xp: 250 },
+      { slug: '02-diversification', titre: 'Diversification géographique africaine', duree: 10, xp: 200 },
+      { slug: '03-gestion-risque', titre: 'Gestion du risque de change', duree: 14, xp: 300 },
+      { slug: '04-rebalancement', titre: 'Rééquilibrage de portefeuille', duree: 10, xp: 200 },
+      { slug: '05-dividendes-strategie', titre: 'Stratégie dividendes BRVM', duree: 12, xp: 250 },
+      { slug: '06-etf-trackers', titre: 'ETF et trackers africains', duree: 10, xp: 200 },
+      { slug: '07-plan-investissement', titre: 'Construire son plan d\'investissement', duree: 14, xp: 300 },
+    ],
+  },
+  {
+    slug: 'avance',
+    label: 'Niveau 4',
+    titre: 'Avancé',
+    desc: 'Produits dérivés, macro, gestion du risque',
+    modules: [
+      { slug: '01-macro-afrique', titre: 'Analyse macroéconomique africaine', duree: 15, xp: 350 },
+      { slug: '02-obligations-etat', titre: 'Obligations d\'État et Eurobonds', duree: 12, xp: 300 },
+      { slug: '03-devises', titre: 'Marchés des changes et FCFA', duree: 14, xp: 350 },
+      { slug: '04-produits-structures', titre: 'Produits structurés', duree: 16, xp: 400 },
+      { slug: '05-gestion-institutionnelle', titre: 'Gestion institutionnelle', duree: 14, xp: 350 },
+    ],
+  },
+];
+---
+
+<BaseLayout title="Academy">
+  <div class="max-w-4xl mx-auto px-4 py-16">
+    <h1 class="text-3xl font-bold mb-2">Academy</h1>
+    <p class="text-gray-400 mb-12">Progressez niveau par niveau, à votre rythme.</p>
+
+    <div class="space-y-12">
+      {niveaux.map(niveau => (
+        <div>
+          <div class="flex items-center gap-3 mb-6">
+            <span class="badge-green">{niveau.label}</span>
+            <h2 class="text-xl font-bold">{niveau.titre}</h2>
+            <span class="text-gray-500 text-sm">— {niveau.desc}</span>
+          </div>
+          <div class="space-y-3">
+            {niveau.modules.map((mod, i) => (
+              <a href={`/academy/${niveau.slug}/${mod.slug}`}
+                 class="card flex items-center justify-between group cursor-pointer hover:border-brand-500/40">
+                <div class="flex items-center gap-4">
+                  <span class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-sm text-gray-400 group-hover:bg-brand-500/10 group-hover:text-brand-400 transition-colors">
+                    {i + 1}
+                  </span>
+                  <span class="font-medium group-hover:text-brand-400 transition-colors">{mod.titre}</span>
+                </div>
+                <div class="flex items-center gap-4 text-sm text-gray-500">
+                  <span>⏱ {mod.duree} min</span>
+                  <span class="badge-gold">+{mod.xp} XP</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

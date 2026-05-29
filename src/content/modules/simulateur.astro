@@ -1,0 +1,78 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Simulateur de Trading">
+  <div class="max-w-7xl mx-auto px-4 py-12">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-2">Simulateur de Trading</h1>
+      <p class="text-gray-400">Entraînez-vous sans risque avec 10 000 000 FCFA virtuels</p>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- Portefeuille -->
+      <div class="card">
+        <h2 class="font-semibold mb-4 text-gray-300">Mon Portefeuille Virtuel</h2>
+        <div class="text-3xl font-bold text-brand-400 mb-1">10 000 000 <span class="text-sm text-gray-400">FCFA</span></div>
+        <p class="text-sm text-gray-500 mb-6">Capital disponible</p>
+        <div class="space-y-3 text-sm">
+          <div class="flex justify-between text-gray-400">
+            <span>Plus-values latentes</span>
+            <span class="text-brand-400">+0 FCFA</span>
+          </div>
+          <div class="flex justify-between text-gray-400">
+            <span>Positions ouvertes</span>
+            <span>0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passer un ordre -->
+      <div class="card lg:col-span-2">
+        <h2 class="font-semibold mb-4 text-gray-300">Passer un Ordre</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-gray-400 mb-1">Titre</label>
+            <select class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none">
+              <option>SNTS — Sonatel (28 700 FCFA)</option>
+              <option>SGBC — SGB Côte d'Ivoire</option>
+              <option>CIEC — CIE</option>
+              <option>ORAC — Orange CI</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1">Type d'ordre</label>
+            <select class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none">
+              <option>Ordre au marché</option>
+              <option>Ordre à cours limité</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1">Quantité</label>
+            <input type="number" min="1" value="10"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1">Sens</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button class="py-2 rounded-lg bg-brand-500 text-white text-sm font-medium">Acheter</button>
+              <button class="py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm font-medium hover:border-red-500 hover:text-red-400 transition-colors">Vendre</button>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-gray-800/50 rounded-lg text-sm text-gray-400">
+          Estimation : <span class="text-white font-medium">287 000 FCFA</span> (10 × 28 700)
+        </div>
+        <button class="btn-primary mt-4 w-full justify-center">Valider l'ordre de simulation</button>
+      </div>
+    </div>
+
+    <!-- Info pédagogique -->
+    <div class="mt-8 card border-brand-500/20 bg-brand-500/5">
+      <p class="text-sm text-brand-300">
+        💡 <strong>Mode apprentissage :</strong> Tous les ordres sont simulés. Les prix reflètent les cours réels de la BRVM.
+        Complétez les modules Academy pour débloquer des stratégies avancées.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

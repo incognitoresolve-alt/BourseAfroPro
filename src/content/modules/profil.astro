@@ -1,0 +1,91 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Mon Espace">
+  <div class="max-w-4xl mx-auto px-4 py-16" id="profil-app">
+    <!-- État non connecté (par défaut) -->
+    <div id="logged-out" class="text-center py-20">
+      <h1 class="text-2xl font-bold mb-4">Mon Espace</h1>
+      <p class="text-gray-400 mb-8">Connectez-vous pour suivre votre progression et accéder à votre portefeuille virtuel.</p>
+      <button data-netlify-identity-button class="btn-primary px-8 py-3">
+        Se connecter / S'inscrire
+      </button>
+    </div>
+
+    <!-- État connecté (affiché via JS après auth) -->
+    <div id="logged-in" class="hidden">
+      <div class="flex items-center gap-4 mb-10">
+        <div class="w-14 h-14 rounded-full bg-brand-500/20 flex items-center justify-center text-2xl">👤</div>
+        <div>
+          <h1 class="text-xl font-bold" id="user-name">Chargement...</h1>
+          <p class="text-gray-400 text-sm" id="user-email"></p>
+        </div>
+        <button id="logout-btn" class="ml-auto btn-secondary text-sm py-2">Déconnexion</button>
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-6 mb-10">
+        <div class="card text-center">
+          <p class="text-2xl font-bold text-gold-400">0</p>
+          <p class="text-gray-400 text-sm mt-1">XP Total</p>
+        </div>
+        <div class="card text-center">
+          <p class="text-2xl font-bold text-brand-400">0/23</p>
+          <p class="text-gray-400 text-sm mt-1">Modules complétés</p>
+        </div>
+        <div class="card text-center">
+          <p class="text-2xl font-bold text-white">0</p>
+          <p class="text-gray-400 text-sm mt-1">Badges obtenus</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="font-semibold mb-4">Progression</h2>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-300">Niveau 1 — Initiation</span>
+              <span class="text-gray-500">0 / 5 modules</span>
+            </div>
+            <div class="h-2 bg-gray-800 rounded-full">
+              <div class="h-2 bg-brand-500 rounded-full w-0 transition-all duration-500"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Attendre que le DOM et le widget Netlify Identity soient chargés
+    function initIdentity() {
+      const netlifyIdentity = (window as any).netlifyIdentity;
+      if (!netlifyIdentity) return;
+
+      function showUser(user: any) {
+        document.getElementById('logged-out')?.classList.add('hidden');
+        document.getElementById('logged-in')?.classList.remove('hidden');
+        const nameEl = document.getElementById('user-name');
+        const emailEl = document.getElementById('user-email');
+        if (nameEl) nameEl.textContent = user.user_metadata?.full_name || 'Investisseur';
+        if (emailEl) emailEl.textContent = user.email;
+      }
+
+      netlifyIdentity.on('init', (user: any) => { if (user) showUser(user); });
+      netlifyIdentity.on('login', (user: any) => { showUser(user); netlifyIdentity.close(); });
+
+      document.getElementById('logout-btn')?.addEventListener('click', () => {
+        netlifyIdentity.logout();
+        document.getElementById('logged-out')?.classList.remove('hidden');
+        document.getElementById('logged-in')?.classList.add('hidden');
+      });
+    }
+
+    // Le widget peut se charger après le script inline
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initIdentity);
+    } else {
+      initIdentity();
+    }
+  </script>
+</BaseLayout>

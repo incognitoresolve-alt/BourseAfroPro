@@ -1,0 +1,63 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Apprendre la Bourse Africaine — BRVM, NSE, JSE' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <title>{title} | Bourse Afrique Academy</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- Netlify Identity Widget -->
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+</head>
+<body>
+
+  <header class="sticky top-0 z-50 border-b border-gray-800 bg-gray-950/90 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2 font-bold text-lg">
+        <span class="text-brand-400">📈</span>
+        <span>Bourse<span class="text-brand-400">Afrique</span></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-sm text-gray-400">
+        <a href="/academy" class="hover:text-white transition-colors">Academy</a>
+        <a href="/simulateur" class="hover:text-white transition-colors">Simulateur</a>
+        <a href="/actualites" class="hover:text-white transition-colors">Actualités</a>
+        <a href="/profil" class="btn-primary text-sm py-2">Mon espace</a>
+      </nav>
+      <button class="md:hidden text-gray-400 hover:text-white" id="menu-toggle">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <footer class="mt-20 border-t border-gray-800 py-10 text-center text-sm text-gray-500">
+    <p>© 2025 Bourse Afrique Academy · Plateforme éducative indépendante</p>
+    <p class="mt-1">Données à titre indicatif uniquement — Pas de conseil en investissement</p>
+  </footer>
+
+  <script>
+    // Netlify Identity redirect
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on("init", user => {
+        if (!user) {
+          window.netlifyIdentity.on("login", () => {
+            document.location.href = "/profil";
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
