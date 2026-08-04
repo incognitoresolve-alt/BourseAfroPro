@@ -61,7 +61,7 @@ export const handler: Handler = async (event, context) => {
           xpEarned: body.xpEarned ?? 0,
           completedAt: body.status === 'COMPLETED' ? new Date().toISOString() : null,
         },
-        { onConflict: '"userId","moduleId"' }  // guillemets pour colonnes camelCase Postgres
+        { onConflict: 'userId,moduleId' }
       );
 
     return {

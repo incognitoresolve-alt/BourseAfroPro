@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
+import { getQuote } from '../lib/quotes';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -55,70 +56,63 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod === 'POST') {
-    // Exécuter un ordre simulé
+    // Exécuter un ordre simulé — le prix est toujours recalculé côté
+    // serveur (jamais fourni par le client) pour empêcher toute manipulation.
     const order = JSON.parse(event.body || '{}');
-    const { symbol, quantity, price, side } = order; // side: 'BUY' | 'SELL'
+    const { symbol, quantity, side } = order; // side: 'BUY' | 'SELL'
 
-    if (!symbol || !quantity || !price || !side) {
+    if (!symbol || typeof symbol !== 'string') {
       return {
         statusCode: 400,
         headers: CORS,
-        body: JSON.stringify({ error: 'Paramètres manquants: symbol, quantity, price, side' }),
+        body: JSON.stringify({ error: 'Paramètre manquant: symbol' }),
+      };
+    }
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      return {
+        statusCode: 400,
+        headers: CORS,
+        body: JSON.stringify({ error: 'quantity doit être un entier positif' }),
+      };
+    }
+    if (side !== 'BUY' && side !== 'SELL') {
+      return {
+        statusCode: 400,
+        headers: CORS,
+        body: JSON.stringify({ error: "side doit être 'BUY' ou 'SELL'" }),
       };
     }
 
-    const { data: portfolio } = await supabase
-      .from('portfolios')
-      .select('*')
-      .eq('userId', userId)
-      .single();
+    const { data: quote } = await getQuote(symbol);
 
-    if (!portfolio) {
-      return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Portefeuille introuvable' }) };
+    // execute_order verrouille la ligne du portefeuille (SELECT ... FOR
+    // UPDATE) et applique cash/positions en une seule transaction atomique,
+    // ce qui élimine les races entre ordres concurrents du même utilisateur.
+    const { data, error } = await supabase.rpc('execute_order', {
+      p_user_id: userId,
+      p_symbol: quote.symbol,
+      p_quantity: quantity,
+      p_price: quote.price,
+      p_side: side,
+    });
+
+    if (error) {
+      const knownErrors: Record<string, string> = {
+        fonds_insuffisants: 'Fonds insuffisants',
+        quantite_insuffisante: 'Quantité insuffisante en portefeuille',
+        portefeuille_introuvable: 'Portefeuille introuvable',
+      };
+      const message = knownErrors[error.message] ?? 'Erreur lors de l\'exécution de l\'ordre';
+      const statusCode = error.message === 'portefeuille_introuvable' ? 404 : 400;
+      return { statusCode, headers: CORS, body: JSON.stringify({ error: message }) };
     }
-
-    const totalCost = quantity * price;
-    let { cash, positions = [] } = portfolio;
-
-    if (side === 'BUY') {
-      if (cash < totalCost) {
-        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Fonds insuffisants' }) };
-      }
-      cash -= totalCost;
-
-      const existing = positions.find((p: any) => p.symbol === symbol);
-      if (existing) {
-        existing.avgPrice = (existing.avgPrice * existing.quantity + price * quantity) / (existing.quantity + quantity);
-        existing.quantity += quantity;
-      } else {
-        positions.push({ symbol, quantity, avgPrice: price });
-      }
-    } else if (side === 'SELL') {
-      const existing = positions.find((p: any) => p.symbol === symbol);
-      if (!existing || existing.quantity < quantity) {
-        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Quantité insuffisante en portefeuille' }) };
-      }
-      cash += totalCost;
-      existing.quantity -= quantity;
-      if (existing.quantity === 0) {
-        positions = positions.filter((p: any) => p.symbol !== symbol);
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('portfolios')
-      .update({ cash, positions })
-      .eq('userId', userId)
-      .select()
-      .single();
 
     return {
-      statusCode: error ? 500 : 200,
+      statusCode: 200,
       headers: { ...CORS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data, error }),
+      body: JSON.stringify({ data, executedPrice: quote.price }),
     };
   }
 
   return { statusCode: 405, headers: CORS, body: 'Method Not Allowed' };
 };
-

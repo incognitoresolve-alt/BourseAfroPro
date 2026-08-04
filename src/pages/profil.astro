@@ -57,12 +57,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </div>
 
   <script>
+    interface NetlifyIdentityUser {
+      email: string;
+      user_metadata?: { full_name?: string };
+    }
+    interface NetlifyIdentityWidget {
+      on(event: 'init' | 'login', callback: (user: NetlifyIdentityUser) => void): void;
+      close(): void;
+      logout(): void;
+    }
+    declare global {
+      interface Window {
+        netlifyIdentity?: NetlifyIdentityWidget;
+      }
+    }
+
     // Attendre que le DOM et le widget Netlify Identity soient chargés
     function initIdentity() {
-      const netlifyIdentity = (window as any).netlifyIdentity;
+      const netlifyIdentity = window.netlifyIdentity;
       if (!netlifyIdentity) return;
 
-      function showUser(user: any) {
+      function showUser(user: NetlifyIdentityUser) {
         document.getElementById('logged-out')?.classList.add('hidden');
         document.getElementById('logged-in')?.classList.remove('hidden');
         const nameEl = document.getElementById('user-name');
@@ -71,8 +86,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         if (emailEl) emailEl.textContent = user.email;
       }
 
-      netlifyIdentity.on('init', (user: any) => { if (user) showUser(user); });
-      netlifyIdentity.on('login', (user: any) => { showUser(user); netlifyIdentity.close(); });
+      netlifyIdentity.on('init', (user) => { if (user) showUser(user); });
+      netlifyIdentity.on('login', (user) => { showUser(user); netlifyIdentity.close(); });
 
       document.getElementById('logout-btn')?.addEventListener('click', () => {
         netlifyIdentity.logout();

@@ -142,37 +142,49 @@ npm run lint     # Vérifier le code
 ```
 bourse-afrique-academy/
 ├── src/
-│   ├── pages/              # Routes Astro (index, academy, simulateur, profil)
-│   │   └── academy/        # Page liste des modules
+│   ├── pages/
+│   │   ├── index.astro                 # Accueil
+│   │   ├── simulateur.astro
+│   │   ├── profil.astro
+│   │   └── academy/
+│   │       ├── index.astro             # Liste des niveaux/modules
+│   │       └── [niveau]/[module].astro # Page d'un module (rendu MDX + quiz)
 │   ├── layouts/
 │   │   └── BaseLayout.astro
 │   ├── content/
-│   │   └── modules/        # Contenu pédagogique en MDX
-│   │       ├── niveau-1/   # Initiation
-│   │       ├── niveau-2/   # Fondamentaux
-│   │       ├── niveau-3/   # Stratégie
-│   │       └── niveau-4/   # Avancé
+│   │   ├── config.ts        # Schéma (zod) des modules
+│   │   └── modules/         # Contenu pédagogique en MDX
+│   │       ├── initiation/    # Niveau 1
+│   │       ├── fondamentaux/  # Niveau 2
+│   │       ├── strategie/     # Niveau 3
+│   │       └── avance/        # Niveau 4
 │   ├── lib/
 │   │   ├── db.ts           # Client Supabase + types
-│   │   └── market-api.ts   # Fetcher données BRVM
+│   │   └── market-api.ts   # Fetcher données BRVM (côté client)
 │   └── styles/
 │       └── global.css      # Tailwind + composants globaux
 ├── netlify/
 │   └── functions/
+│       ├── lib/
+│       │   └── quotes.ts        # Cours BRVM (cache Redis + API + mock), partagé
 │       └── api/
 │           ├── market-data.ts   # Proxy cours BRVM (avec cache Redis)
-│           ├── portfolio.ts     # CRUD portefeuille virtuel
+│           ├── portfolio.ts     # CRUD portefeuille virtuel (prix calculé serveur)
 │           └── progress.ts      # Progression & XP utilisateur
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml      # CI/CD GitHub Actions → Netlify
-├── supabase-schema.sql     # Schéma DB à exécuter sur Supabase
+├── supabase-schema.sql     # Schéma DB + fonction execute_order() à exécuter sur Supabase
 ├── astro.config.mjs
 ├── netlify.toml
 ├── tailwind.config.mjs
 ├── .env.example            # Template variables d'environnement
 └── package.json
 ```
+
+> Seul le module `initiation/01-ecosysteme` est rédigé pour l'instant — les 22 autres
+> modules listés dans `src/pages/academy/index.astro` restent à écrire en MDX dans
+> `src/content/modules/<niveau>/`.
 
 ---
 

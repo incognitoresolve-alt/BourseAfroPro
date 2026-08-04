@@ -1,0 +1,43 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('modules');
+  return entries.map((entry) => {
+    const [niveau, module] = entry.slug.split('/');
+    return { params: { niveau, module }, props: { entry } };
+  });
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<BaseLayout title={entry.data.title}>
+  <article class="max-w-3xl mx-auto px-4 py-16 prose prose-invert prose-headings:font-semibold">
+    <div class="flex items-center gap-3 mb-2 not-prose">
+      <span class="badge-green">{entry.data.level}</span>
+      <span class="badge-gold">+{entry.data.xp} XP</span>
+      <span class="text-gray-500 text-sm">⏱ {entry.data.duration} min</span>
+    </div>
+    <h1 class="text-3xl font-bold mb-8 not-prose">{entry.data.title}</h1>
+    <Content />
+
+    {entry.data.quiz.length > 0 && (
+      <div class="not-prose mt-12 card">
+        <h2 class="font-semibold mb-4">Quiz</h2>
+        <div class="space-y-6">
+          {entry.data.quiz.map((q) => (
+            <div>
+              <p class="font-medium mb-2">{q.question}</p>
+              <ul class="space-y-1 text-sm text-gray-400">
+                {q.options.map((opt) => <li>— {opt}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </article>
+</BaseLayout>
