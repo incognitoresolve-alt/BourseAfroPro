@@ -1,5 +1,5 @@
 // Client-side market data fetcher
-// Les appels directs aux APIs tierces passent par nos Netlify Functions
+// Les appels directs aux APIs tierces passent par nos Cloudflare Pages Functions
 
 export interface MarketQuote {
   symbol: string;
@@ -22,7 +22,7 @@ export const BRVM_WATCHLIST: Pick<MarketQuote, 'symbol' | 'name'>[] = [
 ];
 
 export async function fetchQuote(symbol: string): Promise<MarketQuote> {
-  const res = await fetch(`/.netlify/functions/api/market-data?symbol=${symbol}`);
+  const res = await fetch(`/api/market-data?symbol=${symbol}`);
   if (!res.ok) throw new Error('Erreur chargement cours');
   const { data } = await res.json();
   return data;

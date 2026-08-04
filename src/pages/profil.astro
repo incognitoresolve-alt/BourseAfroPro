@@ -5,12 +5,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="Mon Espace">
   <div class="max-w-4xl mx-auto px-4 py-16" id="profil-app">
     <!-- État non connecté (par défaut) -->
-    <div id="logged-out" class="text-center py-20">
+    <div id="logged-out" class="max-w-sm mx-auto text-center py-20">
       <h1 class="text-2xl font-bold mb-4">Mon Espace</h1>
       <p class="text-gray-400 mb-8">Connectez-vous pour suivre votre progression et accéder à votre portefeuille virtuel.</p>
-      <button data-netlify-identity-button class="btn-primary px-8 py-3">
-        Se connecter / S'inscrire
-      </button>
+
+      <form id="login-form" class="space-y-3">
+        <input
+          type="email"
+          id="login-email"
+          required
+          placeholder="vous@exemple.com"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-brand-500 outline-none"
+        />
+        <button type="submit" class="btn-primary w-full justify-center">
+          Recevoir un lien de connexion
+        </button>
+      </form>
+      <p id="login-message" class="text-sm text-brand-400 mt-4 hidden"></p>
     </div>
 
     <!-- État connecté (affiché via JS après auth) -->
@@ -18,7 +29,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="flex items-center gap-4 mb-10">
         <div class="w-14 h-14 rounded-full bg-brand-500/20 flex items-center justify-center text-2xl">👤</div>
         <div>
-          <h1 class="text-xl font-bold" id="user-name">Chargement...</h1>
+          <h1 class="text-xl font-bold" id="user-name">Investisseur</h1>
           <p class="text-gray-400 text-sm" id="user-email"></p>
         </div>
         <button id="logout-btn" class="ml-auto btn-secondary text-sm py-2">Déconnexion</button>
@@ -57,50 +68,56 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </div>
 
   <script>
-    interface NetlifyIdentityUser {
-      email: string;
-      user_metadata?: { full_name?: string };
+    import { supabase } from '../lib/db';
+
+    function showLoggedOut() {
+      document.getElementById('logged-out')?.classList.remove('hidden');
+      document.getElementById('logged-in')?.classList.add('hidden');
     }
-    interface NetlifyIdentityWidget {
-      on(event: 'init' | 'login', callback: (user: NetlifyIdentityUser) => void): void;
-      close(): void;
-      logout(): void;
+
+    function showLoggedIn(email: string) {
+      document.getElementById('logged-out')?.classList.add('hidden');
+      document.getElementById('logged-in')?.classList.remove('hidden');
+      const emailEl = document.getElementById('user-email');
+      if (emailEl) emailEl.textContent = email;
     }
-    declare global {
-      interface Window {
-        netlifyIdentity?: NetlifyIdentityWidget;
+
+    // État initial + mises à jour (connexion via lien magique, déconnexion, etc.)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user.email) showLoggedIn(session.user.email);
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user.email) {
+        showLoggedIn(session.user.email);
+      } else {
+        showLoggedOut();
       }
-    }
+    });
 
-    // Attendre que le DOM et le widget Netlify Identity soient chargés
-    function initIdentity() {
-      const netlifyIdentity = window.netlifyIdentity;
-      if (!netlifyIdentity) return;
+    document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailInput = document.getElementById('login-email') as HTMLInputElement;
+      const messageEl = document.getElementById('login-message');
+      const email = emailInput.value.trim();
+      if (!email) return;
 
-      function showUser(user: NetlifyIdentityUser) {
-        document.getElementById('logged-out')?.classList.add('hidden');
-        document.getElementById('logged-in')?.classList.remove('hidden');
-        const nameEl = document.getElementById('user-name');
-        const emailEl = document.getElementById('user-email');
-        if (nameEl) nameEl.textContent = user.user_metadata?.full_name || 'Investisseur';
-        if (emailEl) emailEl.textContent = user.email;
-      }
-
-      netlifyIdentity.on('init', (user) => { if (user) showUser(user); });
-      netlifyIdentity.on('login', (user) => { showUser(user); netlifyIdentity.close(); });
-
-      document.getElementById('logout-btn')?.addEventListener('click', () => {
-        netlifyIdentity.logout();
-        document.getElementById('logged-out')?.classList.remove('hidden');
-        document.getElementById('logged-in')?.classList.add('hidden');
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: window.location.origin + '/profil' },
       });
-    }
 
-    // Le widget peut se charger après le script inline
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initIdentity);
-    } else {
-      initIdentity();
-    }
+      if (messageEl) {
+        messageEl.textContent = error
+          ? "Erreur d'envoi — réessayez dans quelques instants."
+          : `Lien de connexion envoyé à ${email}. Vérifiez votre boîte mail.`;
+        messageEl.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      showLoggedOut();
+    });
   </script>
 </BaseLayout>

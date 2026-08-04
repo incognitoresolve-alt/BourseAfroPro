@@ -8,15 +8,15 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx,.astro"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx,.astro",
+    "cf:dev": "npm run build && wrangler pages dev ./dist",
+    "deploy": "npm run build && wrangler pages deploy ./dist"
   },
   "dependencies": {
     "@astrojs/mdx": "^2.0.0",
-    "@astrojs/netlify": "^4.0.0",
     "@astrojs/react": "^3.0.0",
     "@astrojs/sitemap": "^3.2.1",
     "@astrojs/tailwind": "^5.0.0",
-    "@netlify/functions": "^2.4.0",
     "@supabase/supabase-js": "^2.39.0",
     "@upstash/redis": "^1.28.0",
     "alpinejs": "^3.13.0",
@@ -28,11 +28,13 @@
     "zustand": "^4.4.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240925.0",
     "@types/react": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.0",
     "eslint-plugin-astro": "^0.31.4",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "wrangler": "^3.78.0"
   }
 }

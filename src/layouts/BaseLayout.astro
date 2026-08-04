@@ -17,8 +17,6 @@ const { title, description = 'Apprendre la Bourse Africaine — BRVM, NSE, JSE' 
   <meta name="description" content={description} />
   <title>{title} | Bourse Afrique Academy</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <!-- Netlify Identity Widget -->
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
 
@@ -46,18 +44,5 @@ const { title, description = 'Apprendre la Bourse Africaine — BRVM, NSE, JSE' 
     <p>© 2025 Bourse Afrique Academy · Plateforme éducative indépendante</p>
     <p class="mt-1">Données à titre indicatif uniquement — Pas de conseil en investissement</p>
   </footer>
-
-  <script>
-    // Netlify Identity redirect
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on("init", user => {
-        if (!user) {
-          window.netlifyIdentity.on("login", () => {
-            document.location.href = "/profil";
-          });
-        }
-      });
-    }
-  </script>
 </body>
 </html>

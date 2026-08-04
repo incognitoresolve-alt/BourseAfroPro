@@ -48,8 +48,18 @@ ALTER TABLE progressions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
--- Les policies RLS utilisent le JWT Netlify Identity
--- Note: adaptez selon votre configuration d'auth Supabase/Netlify
+-- Les Netlify/Cloudflare Functions utilisent la clé service_role (qui
+-- contourne RLS) : ces policies sont une deuxième ligne de défense si le
+-- client accède un jour directement à Supabase avec la clé anon + un JWT
+-- Supabase Auth (auth.uid()).
+CREATE POLICY "Users manage own progressions" ON progressions
+  FOR ALL USING (auth.uid()::text = "userId") WITH CHECK (auth.uid()::text = "userId");
+
+CREATE POLICY "Users manage own portfolio" ON portfolios
+  FOR ALL USING (auth.uid()::text = "userId") WITH CHECK (auth.uid()::text = "userId");
+
+CREATE POLICY "Users read own transactions" ON transactions
+  FOR SELECT USING (auth.uid()::text = "userId");
 
 -- =============================================
 -- execute_order — exécution atomique d'un ordre simulé

@@ -1,9 +1,5 @@
 import { Redis } from '@upstash/redis';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+import type { Env } from './env';
 
 const CACHE_TTL = 60; // secondes
 
@@ -48,9 +44,13 @@ export interface QuoteResult {
 
 // Récupère un cours (cache Redis → API BRVM → mock), utilisé à la fois par
 // la fonction publique market-data et par portfolio (calcul du prix serveur).
-export async function getQuote(rawSymbol: string): Promise<QuoteResult> {
+export async function getQuote(rawSymbol: string, env: Env): Promise<QuoteResult> {
   const symbol = rawSymbol.toUpperCase();
   const cacheKey = `market:${symbol}`;
+  const redis = new Redis({
+    url: env.UPSTASH_REDIS_REST_URL,
+    token: env.UPSTASH_REDIS_REST_TOKEN,
+  });
 
   try {
     const cached = await redis.get<Quote>(cacheKey);
@@ -61,10 +61,10 @@ export async function getQuote(rawSymbol: string): Promise<QuoteResult> {
     // Redis indisponible → on continue sans cache
   }
 
-  if (process.env.BRVM_API_KEY) {
+  if (env.BRVM_API_KEY) {
     try {
       const res = await fetch(`https://api.brvm.org/v1/quote/${symbol}`, {
-        headers: { Authorization: `Bearer ${process.env.BRVM_API_KEY}` },
+        headers: { Authorization: `Bearer ${env.BRVM_API_KEY}` },
         signal: AbortSignal.timeout(5000),
       });
 

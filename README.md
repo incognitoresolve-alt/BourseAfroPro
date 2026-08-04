@@ -2,9 +2,7 @@
 
 Plateforme éducative pour apprendre à investir sur les marchés boursiers africains — BRVM, NSE, JSE.
 
-**Stack :** Astro 4 · Tailwind CSS · Netlify Functions · Supabase · Upstash Redis · Netlify Identity
-
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/VOTRE-USER/bourse-afrique-academy)
+**Stack :** Astro 4 · Tailwind CSS · Cloudflare Pages Functions · Supabase (DB + Auth) · Upstash Redis
 
 ---
 
@@ -16,18 +14,24 @@ Créer un compte sur chaque service (tous gratuits au démarrage) :
 
 | Service | Lien | Usage | Plan gratuit |
 |---------|------|-------|-------------|
-| **Supabase** | https://supabase.com | Base de données PostgreSQL | 500 MB |
+| **Cloudflare** | https://dash.cloudflare.com | Hébergement (Pages + Functions) | 500 builds/mois, requêtes illimitées |
+| **Supabase** | https://supabase.com | Base de données PostgreSQL + Auth | 500 MB |
 | **Upstash** | https://upstash.com | Cache Redis serverless | 10 000 req/jour |
 | **BRVM API** | https://api.brvm.org | Cours boursiers en temps réel | Optionnel (mock si absent) |
 
 **Supabase — initialiser la base de données :**
 1. Créer un projet sur supabase.com
 2. Aller dans **SQL Editor**
-3. Coller et exécuter le contenu de `supabase-schema.sql`
+3. Coller et exécuter le contenu de `supabase-schema.sql` (crée les tables, la fonction `execute_order()` et les policies RLS)
 4. Récupérer les clés dans **Project Settings → API** :
-   - `SUPABASE_URL`
-   - `anon public` → `SUPABASE_ANON_KEY`
-   - `service_role secret` → `SUPABASE_SERVICE_KEY`
+   - `SUPABASE_URL` (aussi utilisée comme `PUBLIC_SUPABASE_URL`)
+   - `anon public` → `PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role secret` → `SUPABASE_SERVICE_KEY` (⚠️ ne jamais exposer côté client)
+
+**Supabase — activer l'authentification par lien magique :**
+1. **Authentication → Providers → Email**
+2. Vérifier que **Email** est activé (lien magique, sans mot de passe — c'est le flux utilisé par `src/pages/profil.astro`)
+3. **Authentication → URL Configuration** : ajouter l'URL de votre site Cloudflare Pages (ex. `https://bourse-afrique-academy.pages.dev`) aux **Redirect URLs**
 
 **Upstash — créer une base Redis :**
 1. Créer une database sur upstash.com (région Europe de préférence)
@@ -40,13 +44,10 @@ Créer un compte sur chaque service (tous gratuits au démarrage) :
 ### Étape 2 — Pousser le code sur GitHub
 
 ```bash
-# Cloner / initialiser le repo
 git init
 git add .
 git commit -m "feat: initial commit — Bourse Afrique Academy"
 
-# Créer un repo GitHub (sans README, sans .gitignore)
-# Puis :
 git remote add origin https://github.com/VOTRE-USER/bourse-afrique-academy.git
 git branch -M main
 git push -u origin main
@@ -54,58 +55,49 @@ git push -u origin main
 
 ---
 
-### Étape 3 — Connecter Netlify au repo GitHub
+### Étape 3 — Connecter Cloudflare Pages au repo GitHub
 
-1. Aller sur [app.netlify.com](https://app.netlify.com) → **Add new site → Import from Git**
-2. Sélectionner **GitHub** → choisir le repo `bourse-afrique-academy`
-3. Les paramètres de build sont auto-détectés depuis `netlify.toml` :
+1. Aller sur [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages → Create → Pages → Connect to Git**
+2. Sélectionner le repo `bourse-afrique-academy`
+3. Paramètres de build :
+   - Framework preset : **Astro**
    - Build command : `npm run build`
-   - Publish directory : `dist`
-4. Cliquer **Deploy site**
+   - Build output directory : `dist`
+4. Le dossier `functions/` à la racine du repo est détecté et déployé automatiquement comme Pages Functions (routes `/api/*`) — aucune config supplémentaire n'est nécessaire.
+5. Cliquer **Save and Deploy**
 
 ---
 
-### Étape 4 — Ajouter les variables d'environnement dans Netlify
+### Étape 4 — Ajouter les variables d'environnement dans Cloudflare Pages
 
-**Site settings → Environment variables → Add a variable** (une par une) :
+**Workers & Pages → votre projet → Settings → Environment variables** (pour les environnements *Production* et *Preview*) :
 
 ```
-SUPABASE_URL              https://xxxx.supabase.co
-SUPABASE_ANON_KEY         eyJ...
-SUPABASE_SERVICE_KEY      eyJ...
-UPSTASH_REDIS_REST_URL    https://xxxx.upstash.io
-UPSTASH_REDIS_REST_TOKEN  AXxx...
-BRVM_API_KEY              (optionnel — mock activé si absent)
+PUBLIC_SUPABASE_URL        https://xxxx.supabase.co   (build + functions)
+PUBLIC_SUPABASE_ANON_KEY   eyJ...                      (build + functions)
+SUPABASE_URL                https://xxxx.supabase.co   (functions uniquement)
+SUPABASE_SERVICE_KEY        eyJ...                      (functions uniquement — secret)
+UPSTASH_REDIS_REST_URL      https://xxxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN    AXxx...
+BRVM_API_KEY                (optionnel — mock activé si absent)
 ```
 
-Puis **Deploys → Trigger deploy → Deploy site** pour rebuilder avec les variables.
+Marquer `SUPABASE_SERVICE_KEY`, `UPSTASH_REDIS_REST_TOKEN` et `BRVM_API_KEY` comme **secrets** (chiffrés, non ré-affichés). Puis redéployer (**Deployments → Retry deployment**) pour que le build reprenne les nouvelles valeurs.
 
 ---
 
-### Étape 5 — Activer Netlify Identity (authentification)
-
-**Site settings → Identity → Enable Identity**
-
-Options recommandées :
-- Registration : **Invite only** (contrôle des accès) ou **Open** (inscription libre)
-- External providers : Google, GitHub (optionnel)
-
----
-
-### Étape 6 — Ajouter les secrets GitHub Actions (CI/CD)
+### Étape 5 — Ajouter les secrets GitHub Actions (CI/CD)
 
 Pour que le workflow `deploy.yml` fonctionne, ajouter dans **GitHub → Settings → Secrets and variables → Actions** :
 
 | Secret | Où le trouver |
 |--------|--------------|
-| `SUPABASE_URL` | Supabase → Project Settings → API |
-| `SUPABASE_ANON_KEY` | Supabase → Project Settings → API |
-| `SUPABASE_SERVICE_KEY` | Supabase → Project Settings → API |
-| `UPSTASH_REDIS_REST_URL` | Upstash → Database → REST API |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash → Database → REST API |
-| `BRVM_API_KEY` | api.brvm.org (optionnel) |
-| `NETLIFY_AUTH_TOKEN` | Netlify → User settings → Applications → New access token |
-| `NETLIFY_SITE_ID` | Netlify → Site settings → General → Site ID |
+| `PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
+| `PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → Create Token (template *Edit Cloudflare Workers*) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard → barre latérale droite de n'importe quelle page |
+
+Les variables server-only (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `UPSTASH_*`, `BRVM_API_KEY`) ne sont pas nécessaires en CI : elles vivent uniquement dans les Environment variables du projet Cloudflare Pages (étape 4), lues au runtime par les Functions.
 
 ---
 
@@ -123,16 +115,23 @@ npm install
 cp .env.example .env
 # → Ouvrir .env et remplir les clés
 
-# 4. Lancer le serveur de dev
+# 4. Lancer le serveur de dev (site statique uniquement, sans les Functions)
 npm run dev
 # → http://localhost:4321
+```
+
+Pour tester le site **avec** les Pages Functions (`/api/*`) en local, via Wrangler :
+```bash
+npm run cf:dev
+# → build + wrangler pages dev ./dist (lit les variables depuis .env / --binding)
 ```
 
 Autres commandes :
 ```bash
 npm run build    # Build production
-npm run preview  # Prévisualiser le build local
+npm run preview  # Prévisualiser le build statique local (sans les Functions)
 npm run lint     # Vérifier le code
+npm run deploy   # Build + déploiement manuel via wrangler pages deploy
 ```
 
 ---
@@ -145,7 +144,7 @@ bourse-afrique-academy/
 │   ├── pages/
 │   │   ├── index.astro                 # Accueil
 │   │   ├── simulateur.astro
-│   │   ├── profil.astro
+│   │   ├── profil.astro                # Connexion Supabase Auth (lien magique)
 │   │   └── academy/
 │   │       ├── index.astro             # Liste des niveaux/modules
 │   │       └── [niveau]/[module].astro # Page d'un module (rendu MDX + quiz)
@@ -159,26 +158,30 @@ bourse-afrique-academy/
 │   │       ├── strategie/     # Niveau 3
 │   │       └── avance/        # Niveau 4
 │   ├── lib/
-│   │   ├── db.ts           # Client Supabase + types
+│   │   ├── db.ts           # Client Supabase (Auth, navigateur)
 │   │   └── market-api.ts   # Fetcher données BRVM (côté client)
 │   └── styles/
 │       └── global.css      # Tailwind + composants globaux
-├── netlify/
-│   └── functions/
-│       ├── lib/
-│       │   └── quotes.ts        # Cours BRVM (cache Redis + API + mock), partagé
-│       └── api/
-│           ├── market-data.ts   # Proxy cours BRVM (avec cache Redis)
-│           ├── portfolio.ts     # CRUD portefeuille virtuel (prix calculé serveur)
-│           └── progress.ts      # Progression & XP utilisateur
+├── functions/                    # Cloudflare Pages Functions (routes /api/*)
+│   ├── lib/
+│   │   ├── env.ts               # Typage des variables d'environnement
+│   │   ├── auth.ts              # Vérification du JWT Supabase Auth
+│   │   └── quotes.ts            # Cours BRVM (cache Redis + API + mock), partagé
+│   └── api/
+│       ├── market-data.ts       # Proxy cours BRVM (avec cache Redis)
+│       ├── portfolio.ts         # CRUD portefeuille virtuel (prix calculé serveur)
+│       └── progress.ts          # Progression & XP utilisateur
+├── public/
+│   ├── _headers            # Headers de sécurité (CSP, etc.) — format Cloudflare Pages
+│   └── favicon.svg
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml      # CI/CD GitHub Actions → Netlify
-├── supabase-schema.sql     # Schéma DB + fonction execute_order() à exécuter sur Supabase
+│       └── deploy.yml      # CI/CD GitHub Actions → Cloudflare Pages
+├── supabase-schema.sql     # Schéma DB + fonction execute_order() + policies RLS
 ├── astro.config.mjs
-├── netlify.toml
+├── wrangler.toml            # Config Cloudflare Pages/Functions (nodejs_compat, etc.)
 ├── tailwind.config.mjs
-├── .env.example            # Template variables d'environnement
+├── .env.example             # Template variables d'environnement
 └── package.json
 ```
 
@@ -192,14 +195,15 @@ bourse-afrique-academy/
 
 | Phase | Utilisateurs actifs | Coût/mois estimé |
 |-------|---------------------|-----------------|
-| MVP | < 1 000 | **0 €** |
-| Croissance | ~10 000 | ~54 € |
-| Scale | ~100 000 | ~204 € |
+| MVP | < 1 000 | **0 €** (Cloudflare Pages/Functions gratuit, Supabase + Upstash free tier) |
+| Croissance | ~10 000 | ~25 € |
+| Scale | ~100 000 | ~150 € |
 
 ---
 
 ## 📌 Notes importantes
 
 - **Données de marché** : si `BRVM_API_KEY` est absent, les cours sont générés via un mock réaliste (données fictives avec bruit aléatoire ±1%). Suffisant pour les tests et l'apprentissage.
-- **Authentification** : gérée par Netlify Identity (JWT). Les Netlify Functions valident le token via `context.clientContext.user`.
-- **RLS Supabase** : les politiques Row Level Security sont à configurer manuellement selon votre configuration d'auth (voir commentaires dans `supabase-schema.sql`).
+- **Authentification** : gérée par Supabase Auth (lien magique par email, sans mot de passe). Les Pages Functions valident le token via `supabase.auth.getUser(<access_token>)` (voir `functions/lib/auth.ts`). Le client envoie le token dans l'en-tête `Authorization: Bearer <access_token>` pour les appels à `/api/portfolio` et `/api/progress`.
+- **RLS Supabase** : activées avec de vraies policies basées sur `auth.uid()` (voir `supabase-schema.sql`). Les Functions utilisent la clé `service_role` (qui contourne RLS) ; les policies sont une deuxième ligne de défense si le client interroge un jour Supabase directement avec la clé `anon`.
+- **Prix des ordres simulés** : toujours recalculé côté serveur (`functions/lib/quotes.ts`), jamais reçu du client, pour empêcher toute manipulation. L'exécution est atomique via la fonction Postgres `execute_order()` (verrou `FOR UPDATE`).
