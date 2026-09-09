@@ -2,6 +2,7 @@ import type { PagesFunction } from '@cloudflare/workers-types';
 import { createClient } from '@supabase/supabase-js';
 import type { Env } from '../lib/env';
 import { requireUser } from '../lib/auth';
+import { readToonBody, toonResponse } from '../lib/toon';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -9,11 +10,8 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
+function reply(body: unknown, status = 200) {
+  return toonResponse(body, status, CORS);
 }
 
 export const onRequestOptions: PagesFunction<Env> = async () =>
@@ -21,7 +19,7 @@ export const onRequestOptions: PagesFunction<Env> = async () =>
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const user = await requireUser(request, env);
-  if (!user) return json({ error: 'Non autorisé — connectez-vous' }, 401);
+  if (!user) return reply({ error: 'Non autorisé — connectez-vous' }, 401);
 
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY);
   const { data, error } = await supabase
@@ -30,21 +28,17 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     .eq('userId', user.id)
     .order('completedAt', { ascending: false });
 
-  return json({ data, error }, error ? 500 : 200);
+  return reply({ data, error }, error ? 500 : 200);
 };
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const user = await requireUser(request, env);
-  if (!user) return json({ error: 'Non autorisé — connectez-vous' }, 401);
+  if (!user) return reply({ error: 'Non autorisé — connectez-vous' }, 401);
 
-  const body = (await request.json().catch(() => ({}))) as {
-    moduleId?: string;
-    status?: string;
-    xpEarned?: number;
-  };
+  const body = await readToonBody<{ moduleId?: string; status?: string; xpEarned?: number }>(request);
 
   if (!body.moduleId || !body.status) {
-    return json({ error: 'moduleId et status requis' }, 400);
+    return reply({ error: 'moduleId et status requis' }, 400);
   }
 
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY);
@@ -59,5 +53,5 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     { onConflict: 'userId,moduleId' }
   );
 
-  return json({ data, error }, error ? 500 : 200);
+  return reply({ data, error }, error ? 500 : 200);
 };

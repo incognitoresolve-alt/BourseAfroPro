@@ -1,5 +1,7 @@
 // Client-side market data fetcher
 // Les appels directs aux APIs tierces passent par nos Cloudflare Pages Functions
+// Les réponses sont encodées en TOON (plus compact que JSON) — voir functions/lib/toon.ts
+import { decode } from '@toon-format/toon';
 
 export interface MarketQuote {
   symbol: string;
@@ -24,7 +26,7 @@ export const BRVM_WATCHLIST: Pick<MarketQuote, 'symbol' | 'name'>[] = [
 export async function fetchQuote(symbol: string): Promise<MarketQuote> {
   const res = await fetch(`/api/market-data?symbol=${symbol}`);
   if (!res.ok) throw new Error('Erreur chargement cours');
-  const { data } = await res.json();
+  const { data } = decode(await res.text()) as { data: MarketQuote };
   return data;
 }
 

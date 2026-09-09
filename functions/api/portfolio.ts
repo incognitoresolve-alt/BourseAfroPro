@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Env } from '../lib/env';
 import { getQuote } from '../lib/quotes';
 import { requireUser } from '../lib/auth';
+import { readToonBody, toonResponse } from '../lib/toon';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -12,11 +13,8 @@ const CORS = {
 
 const INITIAL_CASH = 10_000_000; // 10 millions FCFA
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
+function reply(body: unknown, status = 200) {
+  return toonResponse(body, status, CORS);
 }
 
 export const onRequestOptions: PagesFunction<Env> = async () =>
@@ -24,7 +22,7 @@ export const onRequestOptions: PagesFunction<Env> = async () =>
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const user = await requireUser(request, env);
-  if (!user) return json({ error: 'Non autorisé' }, 401);
+  if (!user) return reply({ error: 'Non autorisé' }, 401);
 
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY);
 
@@ -44,30 +42,26 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     data = newPortfolio;
   }
 
-  return json({ data });
+  return reply({ data });
 };
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const user = await requireUser(request, env);
-  if (!user) return json({ error: 'Non autorisé' }, 401);
+  if (!user) return reply({ error: 'Non autorisé' }, 401);
 
   // Exécuter un ordre simulé — le prix est toujours recalculé côté
   // serveur (jamais fourni par le client) pour empêcher toute manipulation.
-  const order = (await request.json().catch(() => ({}))) as {
-    symbol?: string;
-    quantity?: number;
-    side?: string;
-  };
+  const order = await readToonBody<{ symbol?: string; quantity?: number; side?: string }>(request);
   const { symbol, quantity, side } = order;
 
   if (!symbol || typeof symbol !== 'string') {
-    return json({ error: 'Paramètre manquant: symbol' }, 400);
+    return reply({ error: 'Paramètre manquant: symbol' }, 400);
   }
   if (!Number.isInteger(quantity) || (quantity as number) <= 0) {
-    return json({ error: 'quantity doit être un entier positif' }, 400);
+    return reply({ error: 'quantity doit être un entier positif' }, 400);
   }
   if (side !== 'BUY' && side !== 'SELL') {
-    return json({ error: "side doit être 'BUY' ou 'SELL'" }, 400);
+    return reply({ error: "side doit être 'BUY' ou 'SELL'" }, 400);
   }
 
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY);
@@ -92,8 +86,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     };
     const message = knownErrors[error.message] ?? "Erreur lors de l'exécution de l'ordre";
     const statusCode = error.message === 'portefeuille_introuvable' ? 404 : 400;
-    return json({ error: message }, statusCode);
+    return reply({ error: message }, statusCode);
   }
 
-  return json({ data, executedPrice: quote.price });
+  return reply({ data, executedPrice: quote.price });
 };

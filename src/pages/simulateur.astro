@@ -9,70 +9,210 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <p class="text-gray-400">Entraînez-vous sans risque avec 10 000 000 FCFA virtuels</p>
     </div>
 
-    <div class="grid lg:grid-cols-3 gap-6">
-      <!-- Portefeuille -->
-      <div class="card">
-        <h2 class="font-semibold mb-4 text-gray-300">Mon Portefeuille Virtuel</h2>
-        <div class="text-3xl font-bold text-brand-400 mb-1">10 000 000 <span class="text-sm text-gray-400">FCFA</span></div>
-        <p class="text-sm text-gray-500 mb-6">Capital disponible</p>
-        <div class="space-y-3 text-sm">
-          <div class="flex justify-between text-gray-400">
-            <span>Plus-values latentes</span>
-            <span class="text-brand-400">+0 FCFA</span>
-          </div>
-          <div class="flex justify-between text-gray-400">
-            <span>Positions ouvertes</span>
-            <span>0</span>
-          </div>
-        </div>
-      </div>
+    <!-- État non connecté -->
+    <div id="logged-out-notice" class="card text-center py-16">
+      <p class="text-gray-400 mb-6">Connectez-vous pour accéder à votre portefeuille virtuel et passer des ordres.</p>
+      <a href="/profil" class="btn-primary px-8 py-3">Se connecter</a>
+    </div>
 
-      <!-- Passer un ordre -->
-      <div class="card lg:col-span-2">
-        <h2 class="font-semibold mb-4 text-gray-300">Passer un Ordre</h2>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-400 mb-1">Titre</label>
-            <select class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none">
-              <option>SNTS — Sonatel (28 700 FCFA)</option>
-              <option>SGBC — SGB Côte d'Ivoire</option>
-              <option>CIEC — CIE</option>
-              <option>ORAC — Orange CI</option>
-            </select>
+    <!-- Application (affichée une fois la session vérifiée) -->
+    <div id="trading-app" class="hidden">
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- Portefeuille -->
+        <div class="card">
+          <h2 class="font-semibold mb-4 text-gray-300">Mon Portefeuille Virtuel</h2>
+          <div class="text-3xl font-bold text-brand-400 mb-1">
+            <span id="cash-display">—</span> <span class="text-sm text-gray-400">FCFA</span>
           </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-1">Type d'ordre</label>
-            <select class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none">
-              <option>Ordre au marché</option>
-              <option>Ordre à cours limité</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-1">Quantité</label>
-            <input type="number" min="1" value="10"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-1">Sens</label>
-            <div class="grid grid-cols-2 gap-2">
-              <button class="py-2 rounded-lg bg-brand-500 text-white text-sm font-medium">Acheter</button>
-              <button class="py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm font-medium hover:border-red-500 hover:text-red-400 transition-colors">Vendre</button>
+          <p class="text-sm text-gray-500 mb-6">Capital disponible</p>
+          <div class="space-y-3 text-sm mb-6">
+            <div class="flex justify-between text-gray-400">
+              <span>Plus-values latentes</span>
+              <span id="unrealized-pnl" class="text-brand-400">+0 FCFA</span>
+            </div>
+            <div class="flex justify-between text-gray-400">
+              <span>Positions ouvertes</span>
+              <span id="positions-count">0</span>
             </div>
           </div>
+          <div id="positions-list" class="space-y-2 text-sm">
+            <p class="text-gray-500">Aucune position ouverte.</p>
+          </div>
         </div>
-        <div class="mt-4 p-3 bg-gray-800/50 rounded-lg text-sm text-gray-400">
-          Estimation : <span class="text-white font-medium">287 000 FCFA</span> (10 × 28 700)
+
+        <!-- Passer un ordre -->
+        <div class="card lg:col-span-2">
+          <h2 class="font-semibold mb-4 text-gray-300">Passer un Ordre</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm text-gray-400 mb-1" for="symbol-select">Titre</label>
+              <select id="symbol-select"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none">
+                <option value="">Chargement des cours…</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-1" for="quantity-input">Quantité</label>
+              <input id="quantity-input" type="number" min="1" value="10"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand-500 outline-none" />
+            </div>
+          </div>
+
+          <div class="mt-4 p-3 bg-gray-800/50 rounded-lg text-sm text-gray-400">
+            Estimation : <span id="estimation-text" class="text-white font-medium">—</span>
+            <span class="text-xs">(exécuté au cours du marché au moment de l'ordre)</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 mt-4">
+            <button id="buy-btn" type="button" class="py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium transition-colors">
+              Acheter
+            </button>
+            <button id="sell-btn" type="button" class="py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm font-medium hover:border-red-500 hover:text-red-400 transition-colors">
+              Vendre
+            </button>
+          </div>
+
+          <p id="order-message" class="text-sm mt-3 hidden"></p>
         </div>
-        <button class="btn-primary mt-4 w-full justify-center">Valider l'ordre de simulation</button>
       </div>
     </div>
 
     <!-- Info pédagogique -->
     <div class="mt-8 card border-brand-500/20 bg-brand-500/5">
       <p class="text-sm text-brand-300">
-        💡 <strong>Mode apprentissage :</strong> Tous les ordres sont simulés. Les prix reflètent les cours réels de la BRVM.
-        Complétez les modules Academy pour débloquer des stratégies avancées.
+        💡 <strong>Mode apprentissage :</strong> Tous les ordres sont simulés. Les prix reflètent les cours réels de la BRVM
+        (ou un mock réaliste si l'API BRVM n'est pas configurée). Complétez les modules Academy pour débloquer des stratégies avancées.
       </p>
     </div>
   </div>
+
+  <script>
+    import { supabase } from '../lib/db';
+    import { fetchWatchlist, type MarketQuote } from '../lib/market-api';
+    import { getPortfolio, placeOrder } from '../lib/portfolio-api';
+    import type { VirtualPortfolio } from '../lib/db';
+
+    const fmt = (n: number) => Math.round(n).toLocaleString('fr-FR');
+
+    let quotes: MarketQuote[] = [];
+
+    function quoteFor(symbol: string): MarketQuote | undefined {
+      return quotes.find((q) => q.symbol === symbol);
+    }
+
+    function updateEstimation() {
+      const select = document.getElementById('symbol-select') as HTMLSelectElement;
+      const qtyInput = document.getElementById('quantity-input') as HTMLInputElement;
+      const estimationEl = document.getElementById('estimation-text');
+      const quote = quoteFor(select.value);
+      const quantity = Number(qtyInput.value);
+      if (!estimationEl) return;
+      if (!quote || !Number.isFinite(quantity) || quantity <= 0) {
+        estimationEl.textContent = '—';
+        return;
+      }
+      estimationEl.textContent = `${fmt(quantity * quote.price)} FCFA (${quantity} × ${fmt(quote.price)})`;
+    }
+
+    function renderPortfolio(portfolio: VirtualPortfolio) {
+      const cashEl = document.getElementById('cash-display');
+      const countEl = document.getElementById('positions-count');
+      const pnlEl = document.getElementById('unrealized-pnl');
+      const listEl = document.getElementById('positions-list');
+      if (cashEl) cashEl.textContent = fmt(portfolio.cash);
+      if (countEl) countEl.textContent = String(portfolio.positions.length);
+
+      let unrealized = 0;
+      const rows = portfolio.positions.map((pos) => {
+        const quote = quoteFor(pos.symbol);
+        const currentPrice = quote?.price ?? pos.avgPrice;
+        const pnl = (currentPrice - pos.avgPrice) * pos.quantity;
+        unrealized += pnl;
+        const sign = pnl >= 0 ? '+' : '';
+        const color = pnl >= 0 ? 'text-brand-400' : 'text-red-400';
+        return `<div class="flex justify-between border-t border-gray-800 pt-2">
+          <span class="text-gray-300">${pos.symbol} <span class="text-gray-500">×${pos.quantity}</span></span>
+          <span class="${color}">${sign}${fmt(pnl)} FCFA</span>
+        </div>`;
+      });
+
+      if (pnlEl) {
+        const sign = unrealized >= 0 ? '+' : '';
+        pnlEl.textContent = `${sign}${fmt(unrealized)} FCFA`;
+        pnlEl.className = unrealized >= 0 ? 'text-brand-400' : 'text-red-400';
+      }
+      if (listEl) {
+        listEl.innerHTML = rows.length ? rows.join('') : '<p class="text-gray-500">Aucune position ouverte.</p>';
+      }
+    }
+
+    async function refreshPortfolio() {
+      try {
+        const portfolio = await getPortfolio();
+        renderPortfolio(portfolio);
+      } catch (_) {
+        // portefeuille pas encore chargé — ignoré silencieusement
+      }
+    }
+
+    async function loadQuotes() {
+      quotes = await fetchWatchlist();
+      const select = document.getElementById('symbol-select') as HTMLSelectElement;
+      select.innerHTML = quotes
+        .map((q) => `<option value="${q.symbol}">${q.symbol} — ${q.name} (${fmt(q.price)} FCFA)</option>`)
+        .join('');
+      updateEstimation();
+    }
+
+    async function submitOrder(side: 'BUY' | 'SELL') {
+      const select = document.getElementById('symbol-select') as HTMLSelectElement;
+      const qtyInput = document.getElementById('quantity-input') as HTMLInputElement;
+      const messageEl = document.getElementById('order-message');
+      const quantity = Number(qtyInput.value);
+
+      if (!messageEl) return;
+      messageEl.classList.remove('hidden', 'text-red-400', 'text-brand-400');
+
+      if (!select.value || !Number.isInteger(quantity) || quantity <= 0) {
+        messageEl.textContent = 'Sélectionnez un titre et une quantité valide.';
+        messageEl.classList.add('text-red-400');
+        return;
+      }
+
+      try {
+        const result = await placeOrder({ symbol: select.value, quantity, side });
+        messageEl.textContent = `Ordre exécuté : ${side === 'BUY' ? 'achat' : 'vente'} de ${quantity} ${select.value} à ${fmt(result.executedPrice)} FCFA.`;
+        messageEl.classList.add('text-brand-400');
+        renderPortfolio(result.data);
+      } catch (err) {
+        messageEl.textContent = err instanceof Error ? err.message : "Erreur lors de l'ordre.";
+        messageEl.classList.add('text-red-400');
+      }
+    }
+
+    async function init() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        document.getElementById('logged-out-notice')?.classList.remove('hidden');
+        document.getElementById('trading-app')?.classList.add('hidden');
+        return;
+      }
+
+      document.getElementById('logged-out-notice')?.classList.add('hidden');
+      document.getElementById('trading-app')?.classList.remove('hidden');
+
+      await loadQuotes();
+      await refreshPortfolio();
+
+      document.getElementById('symbol-select')?.addEventListener('change', updateEstimation);
+      document.getElementById('quantity-input')?.addEventListener('input', updateEstimation);
+      document.getElementById('buy-btn')?.addEventListener('click', () => submitOrder('BUY'));
+      document.getElementById('sell-btn')?.addEventListener('click', () => submitOrder('SELL'));
+    }
+
+    init();
+  </script>
 </BaseLayout>
